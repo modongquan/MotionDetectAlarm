@@ -1,0 +1,2 @@
+DbIp,DbPort,DbUserName,DbPasswd,DbName,DbTable
+127.0.0.1,3306,admin,teamway123456,camera,camerainfo
