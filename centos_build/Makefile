@@ -18,7 +18,7 @@ LIBS = -lmysqlclient \
        -lHCCore \
        -lhcnetsdk \
 
-LIBPATH = ../lib_centos
+LIBPATH = /usr/local/mdalarm/lib
 
 LDFLAG = -Wl,-rpath=$(LIBPATH)
 

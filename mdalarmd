@@ -1,0 +1,37 @@
+#! /bin/sh
+#
+# chkconfig:    2345 98 02
+# description:  motion detect alarm
+# processname:  mdalarm
+# pidfile:      /var/run/mdalarm/mdalarm.pid
+
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+mdalarm=/usr/local/mdalarm/mdalarm
+
+RETVAL=0
+
+# See how we were called.
+case "$1" in
+  start)
+        echo -n "starting mdalarm service"
+        daemon $NICELEVEL $mdalarm
+        RETVAL=$?
+        ;;
+  stop)
+        echo -n "stopping mdalarm service"
+        killproc mdalarm
+        RETVAL=$?
+        ;;
+  restart)
+  	$0 stop
+	$0 start
+	RETVAL=$?
+	;;
+  *)
+	echo "Usage: $0 {start|stop|restart}"
+	exit 1
+esac
+
+exit $RETVAL

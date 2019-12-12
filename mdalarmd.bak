@@ -1,0 +1,33 @@
+#！/bin/sh
+#chkconfig:2345 80 90
+#description:motion detect alarm service
+
+
+start ()
+{
+	/usr/local/mdalarm/mdalarm &
+	echo "start mdalarmd service"
+}
+
+stop ()
+{
+	pidStr=$(cat /var/run/mdalarm/mdalarm.pid)
+	pidLen=${#pidStr}
+	echo "pidStr = $pidStr pidLen = $pidLen"
+	kill -15 $pidStr
+	echo "stop mdalarmd service"
+}
+
+case "$1" in
+	start) 
+		start
+		;;
+	stop) 
+		stop
+		;;
+	*) 
+		echo "usage : service mdalarm {start | stop}"
+		;;
+esac
+exit 0
+

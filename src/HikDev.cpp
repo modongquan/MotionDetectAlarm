@@ -517,8 +517,8 @@ BOOL HikDevOperate::HikDevMotionDetectCfg(LONG lUserId)
     snprintf(MotionDetectParamBuf, MOTION_DETECT_PARAM_BUF_SIZE, "%s", " }\n}\n");
     strParamOut.append(MotionDetectParamBuf, strlen(MotionDetectParamBuf));
 
-    ptrLogger->info("\n{}", strParamOut.c_str());
-    std::cout << strParamOut << std::endl;
+    // ptrLogger->info("\n{}", strParamOut.c_str());
+    // std::cout << strParamOut << std::endl;
 
     BOOL IsNeedToSetCfg = false;
 

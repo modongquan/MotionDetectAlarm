@@ -41,7 +41,7 @@ int CreatePidFile(char *pMsg, uint32_t u32MsgSize)
     }
 
     char u8PidBuf[64];
-    snprintf(u8PidBuf, 64, "%d\r\n", s32ServicePid);
+    snprintf(u8PidBuf, 64, "%d\n", s32ServicePid);
     size_t u32WrSize = strlen(u8PidBuf);
     if(write(s32PidFd, u8PidBuf, u32WrSize) < ssize_t(u32WrSize))
     {
@@ -148,9 +148,14 @@ int main(int argc, char *argv[])
         HikDev.lUserId = HikDevOperate::HikDevLogin(HikDev);
         if(HikDev.lUserId < 0)
         {
-            HikDevLogger->error("camera[{0:d}] login fail", i);
+            HikDevLogger->info("camera[{}] login fail", HikDev.sDevIp.c_str());
             continue;
         }
+        else
+        {
+            HikDevLogger->info("camera[{}] login successful", HikDev.sDevIp.c_str());
+        }
+        HikDevLogger->flush();
 
         HikDevOperate::HikDevStartAlarm(HikDev.lUserId);
     }
@@ -198,6 +203,7 @@ int main(int argc, char *argv[])
 
         continue;
 #endif
+
         uint32_t uiAlarmNum = HikDevOperate::HikDevGetAlarmNum();
         if(0 == uiAlarmNum)
         {
@@ -230,7 +236,6 @@ int main(int argc, char *argv[])
             for(uint32_t j = 0;j < vstrPhone.size();j++)
             {
                 std::string strMsgSent = MsgModuleCom.PackMsgToAlarm(strDataTime, strAlarmIp, vstrPhone[j]);
-                std::cout << strMsgSent << " " << strMsgSent.size() << std::endl;
 
                 uint8_t BufSent[256];
                 uint32_t size;
@@ -239,6 +244,8 @@ int main(int argc, char *argv[])
                     BufSent[size] = static_cast<uint8_t>(strMsgSent[size]);
                 }
                 MsgModuleCom.writeBuffer(BufSent, size);
+
+                std::cout << strAlarmIp << " alarm to " <<  vstrPhone[j] << std::endl;
             }
         }
 
