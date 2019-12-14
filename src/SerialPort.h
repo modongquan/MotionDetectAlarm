@@ -13,7 +13,7 @@
 #include <string.h>
 #include <string>
 #include <map>
-#include "sinks/basic_file_sink.h"
+#include "global.h"
 
 using namespace std;
 
@@ -39,10 +39,12 @@ public:
     ~SerialPort(void); //析构函数
 
     void SetPtrLogger(std::shared_ptr<spdlog::logger> logger);
+    char ToChar(uint8_t val);
+    int Utf8CodeFormat(char CharIn);
     void ConvertToUtf16Be(std::string &strIn, std::string &strOut);
-    std::string PackMsgToAlarm(std::string &strDateTime, std::string &strIp, std::string &strPhoneNum);
+    std::string PackMsgToAlarm(std::string &strDateTime, std::string &strIp, std::string &strName, std::string &strPhoneNum);
 
-    int32_t Open(uint32_t port_id, uint32_t baundrate, uint32_t databite, uint32_t stopbite, uint8_t parity); //打开串口
+    int32_t Open(uint32_t baundrate, uint32_t databite, uint32_t stopbite, uint8_t parity); //打开串口
     void Close(void);                                                                                         //关闭串口
 
     int32_t readBuffer(uint8_t *read_buf, uint32_t buf_len, uint32_t delay_us, uint32_t &read_len);            //串口接受

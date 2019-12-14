@@ -12,12 +12,10 @@ std::shared_ptr<spdlog::logger> HikDevOperate::ptrLogger;
 
 HikDevHandl::HikDevHandl()
 {
-
 }
 
 HikDevHandl::~HikDevHandl()
 {
-
 }
 
 HikDevOperate::HikDevOperate()
@@ -67,17 +65,18 @@ void HikDevOperate::SetPtrLogger(std::shared_ptr<spdlog::logger> logger)
 
 void HikDevOperate::HikDevLoginCallback(LONG lUserID, DWORD dwResult, LPNET_DVR_DEVICEINFO_V30 lpDeviceInfo, void *pUser)
 {
-
-}
-
-void HikDevOperate::HikDevRealPlayCallback(LONG lRealHandle, DWORD dwDataType, BYTE *pBuffer, DWORD dwBufSize, void *pUser)
-{
-    std::cout << "handle = " << lRealHandle << " data type = " << dwDataType << " bufsize = " << dwBufSize << std::endl;
+    lUserID = lUserID;
+    dwResult = dwResult;
+    lpDeviceInfo = lpDeviceInfo;
+    pUser = pUser;
 }
 
 void HikDevOperate::HikDevAlarmCallback(LONG lCommand, NET_DVR_ALARMER *pAlarmer, char *pAlarmInfo, DWORD dwBufLen, void *pUser)
 {
-    switch(lCommand)
+    pUser = pUser;
+    dwBufLen = dwBufLen;
+
+    switch (lCommand)
     {
     case COMM_ALARM_V30:
     {
@@ -85,14 +84,14 @@ void HikDevOperate::HikDevAlarmCallback(LONG lCommand, NET_DVR_ALARMER *pAlarmer
         switch (lpAlarmInfo->dwAlarmType)
         {
         case 3:
-            for(DWORD i = 0;i < MAX_CHANNUM_V30;i ++)
+            for (DWORD i = 0; i < MAX_CHANNUM_V30; i++)
             {
-                if(lpAlarmInfo->byChannel[i])
+                if (lpAlarmInfo->byChannel[i])
                 {
                     struAlarmMotionDetect[dwAlarmMotionDetectWr].struAlarmDevInfo = *pAlarmer;
                     struAlarmMotionDetect[dwAlarmMotionDetectWr].byChannel = i + 1;
                     time(&struAlarmMotionDetect[dwAlarmMotionDetectWr].AlarmTime);
-                    if(++dwAlarmMotionDetectWr >= ALARM_MOTION_DETECT_MAX)
+                    if (++dwAlarmMotionDetectWr >= ALARM_MOTION_DETECT_MAX)
                     {
                         dwAlarmMotionDetectWr = 0;
                     }
@@ -123,7 +122,7 @@ LONG HikDevOperate::HikDevLogin(HikDevHandl DevHdl)
     strcpy(struDevLoginInfo.sDeviceAddress, DevHdl.sDevIp.c_str());
     struDevLoginInfo.wPort = DevHdl.wDevPort;
 
-    strcpy(struDevLoginInfo.sUserName, DevHdl.sDevName.c_str());
+    strcpy(struDevLoginInfo.sUserName, DevHdl.sDevUserName.c_str());
     strcpy(struDevLoginInfo.sPassword, DevHdl.sDevPassword.c_str());
 
     UserId = NET_DVR_Login_V40(&struDevLoginInfo, &struDevInfo);
@@ -142,7 +141,7 @@ BOOL HikDevOperate::HikDevGetDevCfg(LONG lUserId)
     NET_DVR_DEVICECFG_V40 DevCfg;
     DWORD BytesReturned;
 
-    if(!NET_DVR_GetDVRConfig(lUserId, NET_DVR_GET_DEVICECFG_V40, 0, &DevCfg, sizeof(DevCfg), &BytesReturned))
+    if (!NET_DVR_GetDVRConfig(lUserId, NET_DVR_GET_DEVICECFG_V40, 0, &DevCfg, sizeof(DevCfg), &BytesReturned))
     {
         ptrLogger->error("get device confiuration fail, error code = {0:d}", NET_DVR_GetLastError());
         ptrLogger->flush();
@@ -157,7 +156,7 @@ BOOL HikDevOperate::HikDevGetDevCfg(LONG lUserId)
     std::cout << "device type : " << DevCfg.wDevType << std::endl;
     std::cout << "device type name : " << DevCfg.byDevTypeName << std::endl;
 
-    std::cout << "record cycle or not : " << (!DevCfg.dwRecycleRecord?"false":"true") << std::endl;
+    std::cout << "record cycle or not : " << (!DevCfg.dwRecycleRecord ? "false" : "true") << std::endl;
     std::cout << "device serial number : " << DevCfg.sSerialNumber << std::endl;
 
     DWORD HighVer = ((DevCfg.dwSoftwareVersion & 0xffff0000) >> 16);
@@ -223,22 +222,22 @@ BOOL HikDevOperate::HikDevGetDevCfg(LONG lUserId)
     DWORD SNMP_V30 = (DevCfg.bySupport1 & 1);
     DWORD Playback_Download = (DevCfg.bySupport1 & 2);
     DWORD ExpOSD = (DevCfg.bySupport2 & 1);
-    std::cout << "Support Intelligent Search : " << (!IntelligentSearch?"no":"yes") << std::endl;
-    std::cout << "Support Backup : " << (!Backup?"no":"yes") << std::endl;
-    std::cout << "Support Compress Ability Get : " << (!CompressAbilityGet?"no":"yes") << std::endl;
-    std::cout << "Support Double NetCard : " << (!DoubleNetCard?"no":"yes") << std::endl;
-    std::cout << "Support Remote SADP : " << (!RemoteSADP?"no":"yes") << std::endl;
-    std::cout << "Support RaidCard Func : " << (!RaidCardFunc?"no":"yes") << std::endl;
-    std::cout << "Support IPSAN Search : " << (!IPSAN_Search?"no":"yes") << std::endl;
-    std::cout << "Support RTP Over RTSP : " << (!RTP_Over_RTSP?"no":"yes") << std::endl;
-    std::cout << "Support SNMP V30 : " << (!SNMP_V30?"no":"yes") << std::endl;
-    std::cout << "Support Playback Download : " << (!Playback_Download?"no":"yes") << std::endl;
-    std::cout << "Support Expand OSD : " << (!ExpOSD?"no":"yes") << std::endl;
+    std::cout << "Support Intelligent Search : " << (!IntelligentSearch ? "no" : "yes") << std::endl;
+    std::cout << "Support Backup : " << (!Backup ? "no" : "yes") << std::endl;
+    std::cout << "Support Compress Ability Get : " << (!CompressAbilityGet ? "no" : "yes") << std::endl;
+    std::cout << "Support Double NetCard : " << (!DoubleNetCard ? "no" : "yes") << std::endl;
+    std::cout << "Support Remote SADP : " << (!RemoteSADP ? "no" : "yes") << std::endl;
+    std::cout << "Support RaidCard Func : " << (!RaidCardFunc ? "no" : "yes") << std::endl;
+    std::cout << "Support IPSAN Search : " << (!IPSAN_Search ? "no" : "yes") << std::endl;
+    std::cout << "Support RTP Over RTSP : " << (!RTP_Over_RTSP ? "no" : "yes") << std::endl;
+    std::cout << "Support SNMP V30 : " << (!SNMP_V30 ? "no" : "yes") << std::endl;
+    std::cout << "Support Playback Download : " << (!Playback_Download ? "no" : "yes") << std::endl;
+    std::cout << "Support Expand OSD : " << (!ExpOSD ? "no" : "yes") << std::endl;
 
-    std::cout << "esata useage : " << (!DevCfg.byEsataUseage?"backup":"record") << std::endl;
-    std::cout << "ipc plug : " << (!DevCfg.byIPCPlug?"close":"open") << std::endl;
+    std::cout << "esata useage : " << (!DevCfg.byEsataUseage ? "backup" : "record") << std::endl;
+    std::cout << "ipc plug : " << (!DevCfg.byIPCPlug ? "close" : "open") << std::endl;
     std::cout << "storage mode : " << (DWORD)DevCfg.byStorageMode << std::endl;
-    std::cout << "remote power on : " << (!DevCfg.byEnableRemotePowerOn?"disable":"enable") << std::endl;
+    std::cout << "remote power on : " << (!DevCfg.byEnableRemotePowerOn ? "disable" : "enable") << std::endl;
 
     return true;
 }
@@ -248,7 +247,7 @@ BOOL HikDevOperate::HikDevGetNetCfg(LONG lUserId)
     NET_DVR_NETCFG_V50 struNetCfg;
     DWORD BytesReturned;
 
-    if(!NET_DVR_GetDVRConfig(lUserId, NET_DVR_GET_NETCFG_V50, 0, &struNetCfg, sizeof(struNetCfg), &BytesReturned))
+    if (!NET_DVR_GetDVRConfig(lUserId, NET_DVR_GET_NETCFG_V50, 0, &struNetCfg, sizeof(struNetCfg), &BytesReturned))
     {
         ptrLogger->error("get net configuration fail, error code = {0:d}", NET_DVR_GetLastError());
         ptrLogger->flush();
@@ -257,7 +256,7 @@ BOOL HikDevOperate::HikDevGetNetCfg(LONG lUserId)
 
     std::cout << "structure size : " << struNetCfg.dwSize << std::endl;
 
-    for(DWORD i = 0;i < MAX_ETHERNET;i ++)
+    for (DWORD i = 0; i < MAX_ETHERNET; i++)
     {
         std::cout << "ethernet " << i << " cfg : {" << std::endl;
         std::cout << "ipv4 : " << struNetCfg.struEtherNet[i].struDVRIP.sIpV4 << std::endl;
@@ -265,7 +264,7 @@ BOOL HikDevOperate::HikDevGetNetCfg(LONG lUserId)
         std::cout << "ipv4 mask : " << struNetCfg.struEtherNet[i].struDVRIPMask.sIpV4 << std::endl;
         std::cout << "ipv6 mask : " << struNetCfg.struEtherNet[i].struDVRIPMask.byIPv6 << std::endl;
         std::cout << "net interface : ";
-        switch(struNetCfg.struEtherNet[i].dwNetInterface)
+        switch (struNetCfg.struEtherNet[i].dwNetInterface)
         {
         case 1:
             std::cout << "10MBase-T" << std::endl;
@@ -292,10 +291,10 @@ BOOL HikDevOperate::HikDevGetNetCfg(LONG lUserId)
         std::cout << "dvr port : " << struNetCfg.struEtherNet[i].wDVRPort << std::endl;
         std::cout << "MTU : " << struNetCfg.struEtherNet[i].wMTU << std::endl;
         std::cout << "mac addr : ";
-        for(DWORD j = 0;j < MACADDR_LEN;j ++)
+        for (DWORD j = 0; j < MACADDR_LEN; j++)
         {
             printf("%02x", struNetCfg.struEtherNet[i].byMACAddr[j]);
-            if(j < MACADDR_LEN - 1)
+            if (j < MACADDR_LEN - 1)
             {
                 printf("-");
             }
@@ -304,7 +303,7 @@ BOOL HikDevOperate::HikDevGetNetCfg(LONG lUserId)
 
         WORD EthernetPortNo = (WORD)struNetCfg.struEtherNet[i].byEthernetPortNo;
         std::cout << "ethernet port No. : ";
-        if(!EthernetPortNo)
+        if (!EthernetPortNo)
         {
             std::cout << "invalid" << std::endl;
         }
@@ -324,7 +323,8 @@ BOOL HikDevOperate::HikDevGetNetCfg(LONG lUserId)
     std::cout << "alarm host2 ip port : " << struNetCfg.wAlarmHost2IpPort << std::endl;
 
     std::cout << "use dhcp : ";
-    switch(struNetCfg.byUseDhcp){
+    switch (struNetCfg.byUseDhcp)
+    {
     case 0:
         std::cout << "disable" << std::endl;
         break;
@@ -337,7 +337,8 @@ BOOL HikDevOperate::HikDevGetNetCfg(LONG lUserId)
     }
 
     std::cout << "ipv6 mode : ";
-    switch(struNetCfg.byIPv6Mode){
+    switch (struNetCfg.byIPv6Mode)
+    {
     case 0:
         std::cout << "router advertise" << std::endl;
         break;
@@ -356,7 +357,7 @@ BOOL HikDevOperate::HikDevGetNetCfg(LONG lUserId)
     std::cout << "dns server1 ip addr v6 : " << struNetCfg.struDnsServer1IpAddr.byIPv6 << std::endl;
     std::cout << "dns server2 ip addr v4 : " << struNetCfg.struDnsServer2IpAddr.sIpV4 << std::endl;
     std::cout << "dns server2 ip addr v6 : " << struNetCfg.struDnsServer2IpAddr.byIPv6 << std::endl;
-    std::cout << "dns mode : " << (!struNetCfg.byEnableDNS?"automatic getting":"manual setting") << std::endl;
+    std::cout << "dns mode : " << (!struNetCfg.byEnableDNS ? "automatic getting" : "manual setting") << std::endl;
     std::cout << "ip resolver : " << struNetCfg.byIpResolver << std::endl;
     std::cout << "ip resolver port : " << struNetCfg.wIpResolverPort << std::endl;
     std::cout << "http port : " << struNetCfg.wHttpPortNo << std::endl;
@@ -365,14 +366,15 @@ BOOL HikDevOperate::HikDevGetNetCfg(LONG lUserId)
     std::cout << "gateway ipv4 : " << struNetCfg.struGatewayIpAddr.sIpV4 << std::endl;
     std::cout << "gateway ipv6 : " << struNetCfg.struGatewayIpAddr.byIPv6 << std::endl;
 
-    std::cout << "PPPoE : " << (!struNetCfg.struPPPoE.dwPPPOE?"disable":"enable") << std::endl;
+    std::cout << "PPPoE : " << (!struNetCfg.struPPPoE.dwPPPOE ? "disable" : "enable") << std::endl;
     std::cout << "PPPoE user name : " << struNetCfg.struPPPoE.sPPPoEUser << std::endl;
     std::cout << "PPPoE pass word : " << struNetCfg.struPPPoE.sPPPoEPassword << std::endl;
     std::cout << "PPPoE ipv4 : " << struNetCfg.struPPPoE.struPPPoEIP.sIpV4 << std::endl;
     std::cout << "PPPoE ipv6 : " << struNetCfg.struPPPoE.struPPPoEIP.byIPv6 << std::endl;
 
     std::cout << "private multicast discovery : ";
-    switch (struNetCfg.byEnablePrivateMulticastDiscovery) {
+    switch (struNetCfg.byEnablePrivateMulticastDiscovery)
+    {
     case 0:
         std::cout << "default" << std::endl;
         break;
@@ -387,7 +389,8 @@ BOOL HikDevOperate::HikDevGetNetCfg(LONG lUserId)
     }
 
     std::cout << "onvif multicast discovery : ";
-    switch (struNetCfg.byEnableOnvifMulticastDiscovery) {
+    switch (struNetCfg.byEnableOnvifMulticastDiscovery)
+    {
     case 0:
         std::cout << "default" << std::endl;
         break;
@@ -401,23 +404,6 @@ BOOL HikDevOperate::HikDevGetNetCfg(LONG lUserId)
         break;
     }
 
-
-}
-
-BOOL HikDevOperate::HikDevRealPlayStart(LONG lUserId)
-{
-    NET_DVR_PREVIEWINFO PrevInfo;
-
-    memset((void *)&PrevInfo, 0, sizeof(PrevInfo));
-    PrevInfo.lChannel = 1;
-
-    if(NET_DVR_RealPlay_V40(lUserId, &PrevInfo, HikDevRealPlayCallback, nullptr) < 0)
-    {
-        ptrLogger->error("real play fail, error code = {0:d}", NET_DVR_GetLastError());
-        ptrLogger->flush();
-        return false;
-    }
-
     return true;
 }
 
@@ -426,14 +412,14 @@ BOOL HikDevOperate::HikDevMotionDetectCfg(LONG lUserId)
     NET_DVR_PICCFG_V30 struPicCfg;
     DWORD dwRetSize;
 
-    if(!NET_DVR_GetDVRConfig(lUserId, NET_DVR_GET_PICCFG_V30, 1, (void *)&struPicCfg, sizeof(struPicCfg), &dwRetSize))
+    if (!NET_DVR_GetDVRConfig(lUserId, NET_DVR_GET_PICCFG_V30, 1, (void *)&struPicCfg, sizeof(struPicCfg), &dwRetSize))
     {
         ptrLogger->error("get picture configuration, error code = {0:d}", NET_DVR_GetLastError());
         ptrLogger->flush();
         return false;
     }
 
-#define MOTION_DETECT_PARAM_BUF_SIZE    64
+#define MOTION_DETECT_PARAM_BUF_SIZE 64
 
     char MotionDetectParamBuf[MOTION_DETECT_PARAM_BUF_SIZE];
     std::string strParamOut;
@@ -445,11 +431,11 @@ BOOL HikDevOperate::HikDevMotionDetectCfg(LONG lUserId)
     strParamOut.append(MotionDetectParamBuf, strlen(MotionDetectParamBuf));
 
     snprintf(MotionDetectParamBuf, MOTION_DETECT_PARAM_BUF_SIZE, " %s%s\n", "motion detect handle : ",
-             (!struPicCfg.struMotion.byEnableHandleMotion?"disable":"enable"));
+             (!struPicCfg.struMotion.byEnableHandleMotion ? "disable" : "enable"));
     strParamOut.append(MotionDetectParamBuf, strlen(MotionDetectParamBuf));
 
     snprintf(MotionDetectParamBuf, MOTION_DETECT_PARAM_BUF_SIZE, " %s%s\n", "motion detect high displa : ",
-             (!struPicCfg.struMotion.byEnableDisplay?"disable":"enable"));
+             (!struPicCfg.struMotion.byEnableDisplay ? "disable" : "enable"));
     strParamOut.append(MotionDetectParamBuf, strlen(MotionDetectParamBuf));
 
     if (!struPicCfg.struMotion.struMotionHandleType.dwHandleType)
@@ -506,9 +492,10 @@ BOOL HikDevOperate::HikDevMotionDetectCfg(LONG lUserId)
     snprintf(MotionDetectParamBuf, MOTION_DETECT_PARAM_BUF_SIZE, " %s\n", "channel for triggering alarm : { ");
     strParamOut.append(MotionDetectParamBuf, strlen(MotionDetectParamBuf));
 
-    for(DWORD i = 0;i < MAX_ALARMOUT_V30;i ++)
+    for (DWORD i = 0; i < MAX_ALARMOUT_V30; i++)
     {
-        if(!struPicCfg.struMotion.struMotionHandleType.byRelAlarmOut[i]) continue;
+        if (!struPicCfg.struMotion.struMotionHandleType.byRelAlarmOut[i])
+            continue;
 
         snprintf(MotionDetectParamBuf, MOTION_DETECT_PARAM_BUF_SIZE, "  %d%c\n", i, ' ');
         strParamOut.append(MotionDetectParamBuf, strlen(MotionDetectParamBuf));
@@ -522,7 +509,7 @@ BOOL HikDevOperate::HikDevMotionDetectCfg(LONG lUserId)
 
     BOOL IsNeedToSetCfg = false;
 
-    if(!struPicCfg.struMotion.byEnableHandleMotion)
+    if (!struPicCfg.struMotion.byEnableHandleMotion)
     {
         struPicCfg.struMotion.byEnableHandleMotion = 1;
         struPicCfg.struMotion.byMotionSensitive = 4;
@@ -530,9 +517,9 @@ BOOL HikDevOperate::HikDevMotionDetectCfg(LONG lUserId)
         IsNeedToSetCfg = true;
     }
 
-    if(IsNeedToSetCfg == true)
+    if (IsNeedToSetCfg == true)
     {
-        if(!NET_DVR_SetDVRConfig(lUserId, NET_DVR_SET_PICCFG_V30, 1, (void *)&struPicCfg, sizeof(struPicCfg)))
+        if (!NET_DVR_SetDVRConfig(lUserId, NET_DVR_SET_PICCFG_V30, 1, (void *)&struPicCfg, sizeof(struPicCfg)))
         {
             ptrLogger->error("set picture configuration, error code = {0:d}", NET_DVR_GetLastError());
             ptrLogger->flush();
@@ -545,12 +532,12 @@ BOOL HikDevOperate::HikDevMotionDetectCfg(LONG lUserId)
 
 BOOL HikDevOperate::HikDevStartAlarm(LONG lUserId)
 {
-    if(HikDevMotionDetectCfg(lUserId) == false)
+    if (HikDevMotionDetectCfg(lUserId) == false)
     {
         return false;
     }
 
-    if(!NET_DVR_SetDVRMessageCallBack_V30(HikDevAlarmCallback, nullptr))
+    if (!NET_DVR_SetDVRMessageCallBack_V30(HikDevAlarmCallback, nullptr))
     {
         return false;
     }
@@ -560,7 +547,7 @@ BOOL HikDevOperate::HikDevStartAlarm(LONG lUserId)
     AlarmParam.dwSize = sizeof(AlarmParam);
 
     lAlarmHandle = NET_DVR_SetupAlarmChan_V41(lUserId, &AlarmParam);
-    if(lAlarmHandle < 0)
+    if (lAlarmHandle < 0)
     {
         ptrLogger->error("start alarme configuration, error code = {0:d}", NET_DVR_GetLastError());
         ptrLogger->flush();
@@ -572,7 +559,7 @@ BOOL HikDevOperate::HikDevStartAlarm(LONG lUserId)
 
 BOOL HikDevOperate::HikDevStopAlarm()
 {
-    if(!NET_DVR_CloseAlarmChan_V30(lAlarmHandle))
+    if (!NET_DVR_CloseAlarmChan_V30(lAlarmHandle))
     {
         ptrLogger->error("stop alarme configuration, error code = {0:d}", NET_DVR_GetLastError());
         ptrLogger->flush();
@@ -583,15 +570,15 @@ BOOL HikDevOperate::HikDevStopAlarm()
 }
 
 void HikDevOperate::HikDevOutputAlarmDevInfo(NET_DVR_ALARMER struAlarmDev, std::string &strOut)
-{  
-#define DEV_INFO_BUF_MAX_SIZE    64
+{
+#define DEV_INFO_BUF_MAX_SIZE 64
 
     char DevInfoBuf[DEV_INFO_BUF_MAX_SIZE];
 
     snprintf(DevInfoBuf, DEV_INFO_BUF_MAX_SIZE, " %s\n", "alarm device information : {");
     strOut.append(DevInfoBuf, strlen(DevInfoBuf));
 
-    if(struAlarmDev.byUserIDValid)
+    if (struAlarmDev.byUserIDValid)
     {
         snprintf(DevInfoBuf, DEV_INFO_BUF_MAX_SIZE, "  %s%d\n", "user id : ", struAlarmDev.lUserID);
     }
@@ -601,7 +588,7 @@ void HikDevOperate::HikDevOutputAlarmDevInfo(NET_DVR_ALARMER struAlarmDev, std::
     }
     strOut.append(DevInfoBuf, strlen(DevInfoBuf));
 
-    if(struAlarmDev.bySerialValid)
+    if (struAlarmDev.bySerialValid)
     {
         snprintf(DevInfoBuf, DEV_INFO_BUF_MAX_SIZE, "  %s%s\n", "serial number : ", struAlarmDev.sSerialNumber);
     }
@@ -611,7 +598,7 @@ void HikDevOperate::HikDevOutputAlarmDevInfo(NET_DVR_ALARMER struAlarmDev, std::
     }
     strOut.append(DevInfoBuf, strlen(DevInfoBuf));
 
-    if(struAlarmDev.byVersionValid)
+    if (struAlarmDev.byVersionValid)
     {
         snprintf(DevInfoBuf, DEV_INFO_BUF_MAX_SIZE, "  %s%d\n", "device version : ", struAlarmDev.dwDeviceVersion);
     }
@@ -621,7 +608,7 @@ void HikDevOperate::HikDevOutputAlarmDevInfo(NET_DVR_ALARMER struAlarmDev, std::
     }
     strOut.append(DevInfoBuf, strlen(DevInfoBuf));
 
-    if(struAlarmDev.byDeviceNameValid)
+    if (struAlarmDev.byDeviceNameValid)
     {
         snprintf(DevInfoBuf, DEV_INFO_BUF_MAX_SIZE, "  %s%s\n", "device name : ", struAlarmDev.sDeviceName);
     }
@@ -631,7 +618,7 @@ void HikDevOperate::HikDevOutputAlarmDevInfo(NET_DVR_ALARMER struAlarmDev, std::
     }
     strOut.append(DevInfoBuf, strlen(DevInfoBuf));
 
-    if(struAlarmDev.byMacAddrValid)
+    if (struAlarmDev.byMacAddrValid)
     {
         char sMacStr[MACADDR_LEN * 2 + 1];
 
@@ -645,7 +632,7 @@ void HikDevOperate::HikDevOutputAlarmDevInfo(NET_DVR_ALARMER struAlarmDev, std::
     }
     strOut.append(DevInfoBuf, strlen(DevInfoBuf));
 
-    if(struAlarmDev.byLinkPortValid)
+    if (struAlarmDev.byLinkPortValid)
     {
         snprintf(DevInfoBuf, DEV_INFO_BUF_MAX_SIZE, "  %s%u\n", "link port : ", struAlarmDev.wLinkPort);
     }
@@ -655,7 +642,7 @@ void HikDevOperate::HikDevOutputAlarmDevInfo(NET_DVR_ALARMER struAlarmDev, std::
     }
     strOut.append(DevInfoBuf, strlen(DevInfoBuf));
 
-    if(struAlarmDev.byDeviceIPValid)
+    if (struAlarmDev.byDeviceIPValid)
     {
         snprintf(DevInfoBuf, DEV_INFO_BUF_MAX_SIZE, "  %s%s\n", "device ip : ", struAlarmDev.sDeviceIP);
     }
@@ -665,7 +652,7 @@ void HikDevOperate::HikDevOutputAlarmDevInfo(NET_DVR_ALARMER struAlarmDev, std::
     }
     strOut.append(DevInfoBuf, strlen(DevInfoBuf));
 
-    if(struAlarmDev.bySocketIPValid)
+    if (struAlarmDev.bySocketIPValid)
     {
         snprintf(DevInfoBuf, DEV_INFO_BUF_MAX_SIZE, "  %s%s\n", "socket ip : ", struAlarmDev.sSocketIP);
     }
@@ -685,7 +672,7 @@ void HikDevOperate::HikDevOutputAlarmInfo(uint32_t uiAlarmIdx)
 
     localtime_r(&struAlarmMotionDetect[uiAlarmIdx].AlarmTime, &AlarmDateTime);
 
-#define ALARM_INFO_BUF_MAX_SIZE    64
+#define ALARM_INFO_BUF_MAX_SIZE 64
 
     char AlarmInfoBuf[ALARM_INFO_BUF_MAX_SIZE];
     std::string strAlarmInfo;
@@ -716,9 +703,9 @@ void HikDevOperate::HikDevMacHexToStr(BYTE *bMacHex, char *sMacStr, DWORD dwMacS
 {
     DWORD offset = 0;
 
-    for(DWORD i = 0;i < MACADDR_LEN;i ++)
+    for (DWORD i = 0; i < MACADDR_LEN; i++)
     {
-        if(i <  MACADDR_LEN - 1)
+        if (i < MACADDR_LEN - 1)
         {
             int retLen = snprintf(sMacStr + offset, dwMacStrLen - offset, "%02x-", bMacHex[i]);
             offset += retLen;
@@ -732,7 +719,7 @@ void HikDevOperate::HikDevMacHexToStr(BYTE *bMacHex, char *sMacStr, DWORD dwMacS
 
 uint32_t HikDevOperate::HikDevGetAlarmNum(void)
 {
-    if(dwAlarmMotionDetectWr >= dwAlarmMotionDetectRd)
+    if (dwAlarmMotionDetectWr >= dwAlarmMotionDetectRd)
     {
         return (dwAlarmMotionDetectWr - dwAlarmMotionDetectRd);
     }
@@ -745,17 +732,17 @@ uint32_t HikDevOperate::HikDevGetAlarmNum(void)
 void HikDevOperate::HikDevSetAlarmIdxOffset(uint32_t offset)
 {
     dwAlarmMotionDetectRd += offset;
-    if(dwAlarmMotionDetectRd >= ALARM_MOTION_DETECT_MAX)
+    if (dwAlarmMotionDetectRd >= ALARM_MOTION_DETECT_MAX)
     {
         dwAlarmMotionDetectRd -= ALARM_MOTION_DETECT_MAX;
     }
 }
 
 void HikDevOperate::HikDevGetAlarmDateTime(uint32_t uiAlarmIdx, uint32_t &uiYear, uint32_t &uiMonth, uint32_t &uiDay,
-                                   uint32_t &uiHour, uint32_t &uiMinute, uint32_t &uiSecond)
+                                           uint32_t &uiHour, uint32_t &uiMinute, uint32_t &uiSecond)
 {
     uiAlarmIdx += dwAlarmMotionDetectRd;
-    if(uiAlarmIdx >= ALARM_MOTION_DETECT_MAX)
+    if (uiAlarmIdx >= ALARM_MOTION_DETECT_MAX)
     {
         uiAlarmIdx -= ALARM_MOTION_DETECT_MAX;
     }
@@ -775,7 +762,7 @@ void HikDevOperate::HikDevGetAlarmDateTime(uint32_t uiAlarmIdx, uint32_t &uiYear
 void HikDevOperate::HikDevGetAlarmIp(uint32_t uiAlarmIdx, std::string &strAlarmIp)
 {
     uiAlarmIdx += dwAlarmMotionDetectRd;
-    if(uiAlarmIdx >= ALARM_MOTION_DETECT_MAX)
+    if (uiAlarmIdx >= ALARM_MOTION_DETECT_MAX)
     {
         uiAlarmIdx -= ALARM_MOTION_DETECT_MAX;
     }
@@ -784,7 +771,7 @@ void HikDevOperate::HikDevGetAlarmIp(uint32_t uiAlarmIdx, std::string &strAlarmI
 
     struAlarmDev = struAlarmMotionDetect[uiAlarmIdx].struAlarmDevInfo;
 
-    if(struAlarmDev.byDeviceIPValid)
+    if (struAlarmDev.byDeviceIPValid)
     {
         strAlarmIp.append(struAlarmDev.sDeviceIP);
     }
@@ -797,7 +784,7 @@ void HikDevOperate::HikDevGetAlarmIp(uint32_t uiAlarmIdx, std::string &strAlarmI
 void HikDevOperate::HikDevGetAlarmDevName(uint32_t uiAlarmIdx, std::string &strAlarmDevName)
 {
     uiAlarmIdx += dwAlarmMotionDetectRd;
-    if(uiAlarmIdx >= ALARM_MOTION_DETECT_MAX)
+    if (uiAlarmIdx >= ALARM_MOTION_DETECT_MAX)
     {
         uiAlarmIdx -= ALARM_MOTION_DETECT_MAX;
     }
@@ -806,7 +793,7 @@ void HikDevOperate::HikDevGetAlarmDevName(uint32_t uiAlarmIdx, std::string &strA
 
     struAlarmDev = struAlarmMotionDetect[uiAlarmIdx].struAlarmDevInfo;
 
-    if(struAlarmDev.byDeviceNameValid)
+    if (struAlarmDev.byDeviceNameValid)
     {
         strAlarmDevName.append(struAlarmDev.sDeviceName);
     }

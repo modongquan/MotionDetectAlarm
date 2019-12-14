@@ -2,6 +2,7 @@
 
 const std::string DataBaseOperate::CameraIp("ip");
 const std::string DataBaseOperate::CameraPort("login_port");
+const std::string DataBaseOperate::CameraName("name");
 const std::string DataBaseOperate::UserName("username");
 const std::string DataBaseOperate::Passwd("password");
 const std::string DataBaseOperate::PhonNums("phonenums");
@@ -54,6 +55,7 @@ bool DataBaseOperate::ConnectDataBase(const char *ptrIp, uint32_t port, const ch
 
     CameraInfoName[CameraIp] = 0xFFFFFFFF;
     CameraInfoName[CameraPort] = 0xFFFFFFFF;
+    CameraInfoName[CameraName] = 0xFFFFFFFF;
     CameraInfoName[UserName] = 0xFFFFFFFF;
     CameraInfoName[Passwd] = 0xFFFFFFFF;
     CameraInfoName[PhonNums] = 0xFFFFFFFF;
@@ -145,6 +147,20 @@ bool DataBaseOperate::GetCameraPasswd(uint64_t idx, std::string &strPasswd)
     return true;
 }
 
+bool DataBaseOperate::GetCameraName(std::string &strIp, std::string &strName)
+{
+    for(uint32_t i = 0;i < CameraInfoFromDB.size();i++)
+    {
+        if(CameraInfoFromDB[i][CameraIp] == strIp)
+        {
+            strName = CameraInfoFromDB[i][CameraName];
+            return true;
+        }
+    }
+
+    return false;
+}
+
 bool DataBaseOperate::GetCameraWarnPhone(std::string &strIp, std::vector<std::string> &vecPhone)
 {
     if (0 == IpWarnToPhoneFromDB.count(strIp))
@@ -165,8 +181,15 @@ bool DataBaseOperate::GetCameraInfoFromDB(MYSQL *ptrConnect, const char *ptrTabl
         return false;
 
     char QueryCmd[64] = "select * from ";
-
     strcat(QueryCmd, ptrTable);
+
+    if(mysql_real_query(ptrConnect,"set names utf8", 15))
+    {
+        ptrLogger->error("mysql set names utf8 fail : {}", QueryCmd, mysql_error(ptrConnect));
+        ptrLogger->flush();
+        return false;
+    }
+
     if (mysql_real_query(ptrConnect, static_cast<const char *>(QueryCmd), strlen(QueryCmd)))
     {
         ptrLogger->error("{} fail : {}", QueryCmd, mysql_error(ptrConnect));
@@ -213,6 +236,10 @@ bool DataBaseOperate::GetCameraInfoFromDB(MYSQL *ptrConnect, const char *ptrTabl
                 break;
             }
             CameraInfo[iter->first] = std::string(Row[iter->second]);
+            if(iter->first == CameraName)
+            {
+                printf("%s \n", Row[iter->second]);
+            }
         }
 
         if (IsNeedPush)

@@ -2,7 +2,7 @@
 #define CSVPARSE_H
 
 #include "csv.h"
-#include "sinks/basic_file_sink.h"
+#include "global.h"
 #include <vector>
 #include <map>
 

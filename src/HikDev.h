@@ -2,21 +2,22 @@
 #define HIK_DEV_H_
 
 #include "HCNetSDK.h"
-#include "sinks/basic_file_sink.h"
+#include "global.h"
 #include <iostream>
 #include <thread>
 #include <unistd.h>
 #include <time.h>
 
-#define LOGIN_DEV_MAX_NUM   2048
+#define LOGIN_DEV_MAX_NUM 2048
 #define ALARM_MOTION_DETECT_MAX 32
 
-typedef struct{
+typedef struct
+{
     NET_DVR_ALARMER struAlarmDevInfo;
     BYTE byRes[7];
     BYTE byChannel;
     time_t AlarmTime;
-}ALARM_MOTION_DETECT, *LPALARM_MOTION_DETECT;
+} ALARM_MOTION_DETECT, *LPALARM_MOTION_DETECT;
 
 class HikDevHandl
 {
@@ -24,13 +25,14 @@ public:
     HikDevHandl();
     ~HikDevHandl();
 
-    std::string sDevIp;         /*device ip addr for login*/
-    WORD wDevPort;            /*device port for login*/
-    std::string sDevName;        /*device name for login*/
-    std::string sDevPassword;   /*device password for login*/
+    std::string sDevIp; /*device ip addr for login*/
+    WORD wDevPort;      /*device port for login*/
+    std::string sDevUserName; /*device user name for login*/
+    std::string sDevPassword; /*device password for login*/
     LONG lUserId;
+
 private:
-             /*user id returned by device after login*/
+    /*user id returned by device after login*/
 };
 
 class HikDevOperate
@@ -52,9 +54,6 @@ public:
     static BOOL HikDevGetDevCfg(LONG lUserId);
     static BOOL HikDevGetNetCfg(LONG lUserId);
 
-    /*Real Play Api*/
-    static BOOL HikDevRealPlayStart(LONG lUserId);
-
     /*Alarm Api*/
     static BOOL HikDevStartAlarm(LONG lUserId);
     static BOOL HikDevStopAlarm();
@@ -68,10 +67,9 @@ public:
     static void HikDevGetAlarmDevName(uint32_t uiAlarmIdx, std::string &strAlarmDevName);
 
     /*Get Alarm Information Varialble*/
-    static LONG lAlarmHandle;                        /*hanlde to start or stop alarm*/
+    static LONG lAlarmHandle; /*hanlde to start or stop alarm*/
 private:
     static void HikDevLoginCallback(LONG lUserID, DWORD dwResult, LPNET_DVR_DEVICEINFO_V30 lpDeviceInfo, void *pUser);
-    static void HikDevRealPlayCallback(LONG lRealHandle, DWORD dwDataType, BYTE *pBuffer, DWORD dwBufSize, void *pUser);
     static void HikDevAlarmCallback(LONG lCommand, NET_DVR_ALARMER *pAlarmer, char *pAlarmInfo, DWORD dwBufLen, void *pUser);
 
     /*Motion Detect Api*/

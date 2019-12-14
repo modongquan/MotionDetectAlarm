@@ -6,7 +6,7 @@
 #include <string.h>
 #include <vector>
 #include <map>
-#include "sinks/basic_file_sink.h"
+#include "global.h"
 
 typedef struct
 {
@@ -30,6 +30,7 @@ public:
     static bool GetCameraPort(uint64_t idx, uint32_t &port);
     static bool GetCameraUserName(uint64_t idx, std::string &strName);
     static bool GetCameraPasswd(uint64_t idx, std::string &strPasswd);
+    static bool GetCameraName(std::string &strIp, std::string &strName);
     static bool GetCameraWarnPhone(std::string &strIp, std::vector<std::string> &vecPhone);
 
 private:
@@ -38,6 +39,7 @@ private:
 
     static const std::string CameraIp;
     static const std::string CameraPort;
+    static const std::string CameraName;
     static const std::string UserName;
     static const std::string Passwd;
     static const std::string PhonNums;

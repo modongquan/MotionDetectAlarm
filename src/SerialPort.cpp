@@ -1,5 +1,5 @@
 #include "SerialPort.h"
-#include "spdlog.h"
+#include <string>
 #include <iostream>
 
 /*******************************************************************
@@ -8,7 +8,7 @@
 * 入口参数: 无
 * 出口参数: 无
 *******************************************************************/
-SerialPort::SerialPort() : strMsgSent("send_message(\"\",\"002000490050573057404E3A7684644450CF673A53D1751F79FB52A84FA66D4B62A58B66\")\r\n")
+SerialPort::SerialPort() : strMsgSent("send_message(\"\",\"002053D1751F79FB52A84FA66D4B62A58B66000A644450CF673A540D79F0FF1A000A644450CF673A00490050FF1A\")\r\n")
 {
     isnormal = UART_FALSE;
     fd = UART_FALSE;
@@ -43,37 +43,118 @@ void SerialPort::SetPtrLogger(std::shared_ptr<spdlog::logger> logger)
     ptrLogger = logger;
 }
 
+char SerialPort::ToChar(uint8_t val)
+{
+    char out;
+
+    if (val < 0xA)
+    {
+        out = val + 0x30;
+    }
+    else
+    {
+        out = val + 0x37;
+    }
+
+    return out;
+}
+
 void SerialPort::ConvertToUtf16Be(std::string &strIn, std::string &strOut)
 {
-    for(uint32_t i = 0;i < strIn.size();i ++)
+#if 0
+    for (uint32_t i = 0; i < strIn.size(); i++)
     {
-        if(0 == Utf16beConvertor.count(strIn.at(i)))
+        if (0 == Utf16beConvertor.count(strIn.at(i)))
         {
             continue;
         }
         strOut.insert(strOut.size(), Utf16beConvertor[strIn.at(i)]);
     }
+#else
+    uint32_t i = 0;
+    while (i < strIn.size())
+    {
+        uint16_t CharInFirst = ((uint16_t)strIn.at(i) & 0x00ff);
+        uint16_t CharInSecond = 0;
+        uint16_t CharInThird = 0;
+        if (i + 1 < strIn.size())
+        {
+            CharInSecond = ((uint16_t)strIn.at(i + 1) & 0x00ff);
+        }
+        if (i + 2 < strIn.size())
+        {
+            CharInThird = ((uint16_t)strIn.at(i + 2) & 0x00ff);
+        }
+        uint16_t Utf16Code = 0;
+
+        if (!(CharInFirst & 0x0080))
+        {
+            Utf16Code = CharInFirst;
+            i++;
+        }
+        else if ((CharInFirst >> 5) == 0x06 && (CharInSecond >> 6) == 0x02)
+        {
+            Utf16Code = ((CharInFirst << 6) | (CharInSecond & 0x3F));
+            i += 2;
+        }
+        else if ((CharInFirst >> 4) == 0x0E && (CharInSecond >> 6) == 0x02 && (CharInThird >> 6) == 0x02)
+        {
+            Utf16Code = ((CharInFirst << 12) | ((CharInSecond & 0x3F) << 6) | (CharInThird & 0x3F));
+            i += 3;
+        }
+        else
+        {
+            i++;
+            continue;
+        }
+
+        char HighChar = *((char *)&Utf16Code + 1);
+        char LowChar = *(char *)&Utf16Code;
+        uint8_t HighVal;
+        uint8_t LowVal;
+
+        HighVal = (((uint8_t)HighChar >> 4) & 0x0f);
+        LowVal = ((uint8_t)HighChar & 0x0f);
+        strOut.push_back(ToChar(HighVal));
+        strOut.push_back(ToChar(LowVal));
+
+        HighVal = (((uint8_t)LowChar >> 4) & 0x0f);
+        LowVal = ((uint8_t)LowChar & 0x0f);
+        strOut.push_back(ToChar(HighVal));
+        strOut.push_back(ToChar(LowVal));
+    }
+#endif
 }
 
-std::string SerialPort::PackMsgToAlarm(std::string &strDateTime, std::string &strIp, std::string &strPhoneNum)
+std::string SerialPort::PackMsgToAlarm(std::string &strDateTime, std::string &strIp, std::string &strName, std::string &strPhoneNum)
 {
     std::string strMsg;
 
-    if(strIp.empty() || strPhoneNum.empty()) return strMsg;
+    if (strIp.empty() || strPhoneNum.empty())
+        return strMsg;
 
     std::string strDataTimeUtf16be;
     std::string strIpUtf16be;
+    std::string strNameUtf16be;
 
     ConvertToUtf16Be(strDateTime, strDataTimeUtf16be);
     ConvertToUtf16Be(strIp, strIpUtf16be);
+    ConvertToUtf16Be(strName, strNameUtf16be);
 
     strMsg = strMsgSent;
 
     size_t pos;
 
-    strMsg.insert(14, strPhoneNum);
-    strMsg.insert(17 + 11, strDataTimeUtf16be);
-    pos = 41 + 11 + strDataTimeUtf16be.size();
+    pos = 14;
+    strMsg.insert(pos, strPhoneNum);
+
+    pos += (3 + 11);
+    strMsg.insert(pos, strDataTimeUtf16be);
+
+    pos += (64 + strDataTimeUtf16be.size());
+    strMsg.insert(pos, strNameUtf16be);
+
+    pos += (28 + strNameUtf16be.size());
     strMsg.insert(pos, strIpUtf16be);
 
     return strMsg;
@@ -86,22 +167,24 @@ std::string SerialPort::PackMsgToAlarm(std::string &strDateTime, std::string &st
            speed :波特率
 * 出口参数：        正确返回为1，错误返回为0
 *******************************************************************/
-int32_t SerialPort::Open(uint32_t port_id, uint32_t baundrate, uint32_t databite, uint32_t stopbite, uint8_t parity)
+int32_t SerialPort::Open(uint32_t baundrate, uint32_t databite, uint32_t stopbite, uint8_t parity)
 {
     const char *dev_t[] = {"/dev/ttyUSB0", "/dev/ttyUSB1", "/dev/ttyUSB2"};
+    uint32_t port_id = 0;
+    uint32_t port_max = sizeof(dev_t) / sizeof(const char *);
 
-    if (port_id >= sizeof(dev_t))
+    while ((fd = open(dev_t[port_id], O_RDWR | O_NOCTTY | O_NONBLOCK)) == UART_FALSE)
     {
-        ptrLogger->error("serial port id input error");
-        return (UART_FALSE);
+        ptrLogger->info("serial port {} is unavailable : {}", dev_t[port_id], strerror(errno));
+        if (++port_id >= port_max)
+        {
+            ptrLogger->error("can't find serial port available");
+            ptrLogger->flush();
+            return (UART_FALSE);
+        }
     }
-
-    fd = open(dev_t[port_id], O_RDWR | O_NOCTTY | O_NONBLOCK);
-    if (UART_FALSE == fd)
-    {
-        ptrLogger->error("can't open serial port : {}", strerror(errno));
-        return (UART_FALSE);
-    }
+    ptrLogger->info("open serial port available {} successfully", dev_t[port_id]);
+    ptrLogger->flush();
 
     //测试是否为终端设备  确认串口是否打开
     //    if (0 == isatty(STDIN_FILENO))
@@ -286,7 +369,7 @@ int32_t SerialPort::Set(uint32_t baundrate, uint32_t flow_ctrl, uint32_t databit
 *******************************************************************/
 int32_t SerialPort::readBuffer(uint8_t *read_buf, uint32_t buf_len, uint32_t delay_us, uint32_t &read_len)
 {
-    if(read_buf == nullptr)
+    if (read_buf == nullptr)
     {
         return (UART_FALSE);
     }
@@ -312,14 +395,14 @@ int32_t SerialPort::readBuffer(uint8_t *read_buf, uint32_t buf_len, uint32_t del
         ptrLogger->flush();
         return UART_FALSE;
     }
-    else if(0 == fs_sel)
+    else if (0 == fs_sel)
     {
         return UART_FALSE;
     }
 
     ssize_t ret_len;
     ret_len = read(fd, read_buf, buf_len);
-    if(ret_len > 0)
+    if (ret_len > 0)
     {
         read_len = static_cast<uint32_t>(ret_len);
         return UART_TRUE;
@@ -334,7 +417,7 @@ int32_t SerialPort::readBuffer(uint8_t *read_buf, uint32_t buf_len, uint32_t del
 #if 1
 int32_t SerialPort::readLine(uint8_t *read_buf, uint32_t delay_us, uint32_t &read_len)
 {
-    if(read_buf == nullptr)
+    if (read_buf == nullptr)
     {
         return (UART_FALSE);
     }
@@ -342,27 +425,27 @@ int32_t SerialPort::readLine(uint8_t *read_buf, uint32_t delay_us, uint32_t &rea
     bool is_need_return = false;
 
 read_line_handle:
-    if(uiReadLineValidSize > 0)
+    if (uiReadLineValidSize > 0)
     {
-        for(uint32_t i = uiReadLineIdx;i < uiReadLineValidSize;i ++)
+        for (uint32_t i = uiReadLineIdx; i < uiReadLineValidSize; i++)
         {
-            if(uiReadLineIdx > 0)
+            if (uiReadLineIdx > 0)
             {
-               ucReadLineBuf[i - uiReadLineIdx] = ucReadLineBuf[i];
+                ucReadLineBuf[i - uiReadLineIdx] = ucReadLineBuf[i];
             }
 
-            if(0x0A != ucReadLineBuf[i])
+            if (0x0A != ucReadLineBuf[i])
             {
-                if(i == uiReadLineValidSize - 1)
+                if (i == uiReadLineValidSize - 1)
                 {
-                    if(uiReadLineIdx > 0)
+                    if (uiReadLineIdx > 0)
                     {
                         uiReadLineValidSize -= uiReadLineIdx;
                         uiReadLineIdx = 0;
                     }
                     memset(ucReadLineBuf + uiReadLineValidSize, 0, READ_LINE_BUF_SIZE - uiReadLineValidSize);
 
-                    if(false == is_need_return)
+                    if (false == is_need_return)
                     {
                         break;
                     }
@@ -377,7 +460,7 @@ read_line_handle:
             read_len = i + 1 - uiReadLineIdx;
             memcpy(read_buf, ucReadLineBuf, read_len);
             uiReadLineIdx = i + 1;
-            if(uiReadLineIdx >= uiReadLineValidSize)
+            if (uiReadLineIdx >= uiReadLineValidSize)
             {
                 uiReadLineValidSize = 0;
                 uiReadLineIdx = 0;
@@ -386,7 +469,7 @@ read_line_handle:
         }
     }
 
-    if(UART_FALSE == readBuffer(ucReadLineBuf + uiReadLineValidSize, READ_LINE_BUF_SIZE - uiReadLineValidSize, delay_us, read_len))
+    if (UART_FALSE == readBuffer(ucReadLineBuf + uiReadLineValidSize, READ_LINE_BUF_SIZE - uiReadLineValidSize, delay_us, read_len))
     {
         return UART_FALSE;
     }
@@ -400,7 +483,7 @@ read_line_handle:
 #else
 int32_t SerialPort::readLine(uint8_t *read_buf, uint32_t delay_us, uint32_t &read_len)
 {
-    if(nullptr == read_buf)
+    if (nullptr == read_buf)
     {
         ptrLogger->error("{} : input null", __FUNCTION__);
         return UART_FALSE;
@@ -409,12 +492,12 @@ int32_t SerialPort::readLine(uint8_t *read_buf, uint32_t delay_us, uint32_t &rea
     read_len = 0;
     uint32_t delay_count = 0;
 
-    while(delay_count < 2)
+    while (delay_count < 2)
     {
         uint8_t read_char;
         uint32_t read_char_len;
 
-        if(UART_FALSE == readBuffer(&read_char, 1, 0, read_char_len))
+        if (UART_FALSE == readBuffer(&read_char, 1, 0, read_char_len))
         {
             usleep(delay_us);
             delay_count++;
@@ -424,7 +507,7 @@ int32_t SerialPort::readLine(uint8_t *read_buf, uint32_t delay_us, uint32_t &rea
         delay_count = 0;
 
         ucReadLineBuf[uiReadLineValidSize++] = read_char;
-        if(0x0A == read_char || uiReadLineValidSize >= READ_LINE_BUF_SIZE)
+        if (0x0A == read_char || uiReadLineValidSize >= READ_LINE_BUF_SIZE)
         {
             memcpy(read_buf, ucReadLineBuf, uiReadLineValidSize);
             read_len = uiReadLineValidSize;
@@ -456,7 +539,7 @@ int32_t SerialPort::writeBuffer(uint8_t *write_buf, uint32_t buf_len)
     ssize_t len = 0;
 
     len = write(fd, write_buf, buf_len);
-    if (len == buf_len)
+    if (len > 0 && (uint32_t)len == buf_len)
     {
         return UART_TRUE;
     }
